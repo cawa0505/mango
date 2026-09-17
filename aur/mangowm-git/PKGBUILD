@@ -24,7 +24,7 @@ arch=('x86_64' 'aarch64')
 url='https://github.com/cawa0505/mango'
 license=('GPL-3.0')
 depends=('glibc' 'wayland' 'libinput' 'libdrm' 'pixman' 'libxkbcommon' 'pcre2'
-         'libwlroots-0.20.so=libwlroots-0.20.so-64' 'scenefx0.5' 'cjson' 'pango')
+         'wlroots0.20' 'scenefx0.5' 'cjson' 'pango')
 makedepends=('meson' 'ninja' 'git')
 provides=('mangowm' 'mangowc')
 conflicts=('mangowm' 'mangowc')
