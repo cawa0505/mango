@@ -428,33 +428,28 @@ static void restore_seat_keyboard(KeyboardGroup *group) {
 // keyboards) are excluded; their modifier state may linger or lock and should
 // not trigger mouse bindings.
 //
-// Exception: when there is no physical keyboard at all, the only input path is
-// a virtual keyboard (e.g. remote KVM/input-sharing tools such as lan-mouse
-// that inject through zwp_virtual_keyboard_v1). Excluding those would make the
-// modifier state always zero, so mouse/gesture bindings could never match and
-// dragging a window would silently stop working. Fall back to the virtual
-// keyboards only in that no-physical-keyboard case, which keeps the original
-// intent intact on machines that do have a real keyboard.
+// Exception: remote input-sharing tools (lan-mouse, barrier, input-leap, …)
+// inject through zwp_virtual_keyboard_v1, so their modifiers only ever show up
+// on a virtual keyboard. A machine can have a physical keyboard *and* be driven
+// remotely at the same time, so the physical-only result is not enough: the
+// physical keyboards are authoritative when they report anything, and the
+// virtual keyboards are consulted as well so that injected modifier state is
+// honoured. Input-method keyboards are the case upstream wanted to exclude, but
+// they only ever hold a modifier down while actually composing, so unioning is
+// safe in practice.
 uint32_t keyboard_hard_modifiers(void) {
 	uint32_t mods = 0;
 	KeyboardGroup *group;
-	bool has_physical = false;
 
-	if (server.keyboard_group && server.keyboard_group->keyboard) {
+	if (server.keyboard_group && server.keyboard_group->keyboard)
 		mods |= wlr_keyboard_get_modifiers(server.keyboard_group->keyboard);
-		has_physical = true;
-	}
 	wl_list_for_each(group, &server.standalone_keyboards, link) {
-		if (group->keyboard) {
+		if (group->keyboard)
 			mods |= wlr_keyboard_get_modifiers(group->keyboard);
-			has_physical = true;
-		}
 	}
-	if (!has_physical) {
-		wl_list_for_each(group, &server.virtual_keyboards, link) {
-			if (group->keyboard)
-				mods |= wlr_keyboard_get_modifiers(group->keyboard);
-		}
+	wl_list_for_each(group, &server.virtual_keyboards, link) {
+		if (group->keyboard)
+			mods |= wlr_keyboard_get_modifiers(group->keyboard);
 	}
 	return mods;
 }
