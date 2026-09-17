@@ -1,0 +1,54 @@
+# Maintainer: cawa0505
+#
+# Patched build of mangowm from our fork.
+#
+# Why this package exists instead of the repo/AUR `mangowm`: mangowm 0.17.0
+# restricted keyboard_hard_modifiers() to physical keyboards, so modifier state
+# injected by remote input-sharing tools (lan-mouse / barrier / input-leap, via
+# zwp_virtual_keyboard_v1) was never seen and mouse bindings — including
+# dragging a floating window — silently stopped working. Our fork branch
+# carries the fix (union virtual keyboards into the modifier set).
+#
+# It tracks the fix branch on purpose. Once the fix lands upstream, either
+# switch the source below back to a released tag, or just drop this package
+# and install the repo `mangowm`.
+#
+# Install:  cd aur/mangowm-git && makepkg -si
+# It conflicts with and replaces the repo `mangowm` package.
+
+pkgname=mangowm-git
+pkgver=0.17.2
+pkgrel=1
+pkgdesc='A Wayland compositor with smooth animation (cawa0505 fork: virtual keyboard modifier fix)'
+arch=('x86_64' 'aarch64')
+url='https://github.com/cawa0505/mango'
+license=('GPL-3.0')
+depends=('glibc' 'wayland' 'libinput' 'libdrm' 'pixman' 'libxkbcommon' 'pcre2'
+         'libwlroots-0.20.so=libwlroots-0.20.so-64' 'scenefx0.5' 'cjson' 'pango')
+makedepends=('meson' 'ninja' 'git')
+provides=('mangowm' 'mangowc')
+conflicts=('mangowm' 'mangowc')
+backup=('etc/mango/config.conf')
+source=("$pkgname::git+https://github.com/cawa0505/mango.git#branch=fix/virtual-keyboard-modifiers")
+sha256sums=('SKIP')
+
+pkgver() {
+	cd "$pkgname"
+	# No usable tags on the fork (upstream stopped tagging after 0.9.2), so take
+	# the version from meson.build and append the revision count + short hash.
+	local _ver
+	_ver=$(sed -n "s/^[[:space:]]*version[[:space:]]*:[[:space:]]*'\([^']*\)'.*/\1/p" meson.build | head -1)
+	printf '%s.r%s.g%s' "${_ver:-0}" "$(git rev-list --count HEAD)" \
+		"$(git rev-parse --short=8 HEAD)"
+}
+
+build() {
+	cd "$pkgname"
+	meson setup build --prefix=/usr --buildtype=release
+	meson compile -C build
+}
+
+package() {
+	cd "$pkgname"
+	DESTDIR="$pkgdir" meson install -C build
+}
